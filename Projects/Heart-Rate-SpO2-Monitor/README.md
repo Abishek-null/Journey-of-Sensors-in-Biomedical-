@@ -1,4 +1,4 @@
-🔬 My Biomedical Sensor Projects
+🔬 My Biomedical Sensor Projects with ESP32 
 
 A collection of my hands-on learning projects involving biomedical sensors, electronics, and healthcare monitoring.
 
