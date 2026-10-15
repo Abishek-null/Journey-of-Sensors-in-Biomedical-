@@ -1,0 +1,55 @@
+Complete connection diagram
+              ESP32 DEVKIT V1
+              +-------------------+
+              |                   |
+              |       3V3 --------+--------------------+
+              |                   |                    |
+              |                   |                [2.2 kΩ]
+              |                   |                    |
+              |                   |                    +------ SDA BUS
+              |                   |                    |
+              |                   |                [2.2 kΩ]
+              |                   |                    |
+              |                   |                    +------ SCL BUS
+              |                   |
+              |      GPIO 21 -----+--------------------+------ SDA BUS
+              |                   |                    |
+              |      GPIO 22 -----+--------------------+------ SCL BUS
+              |                   |                    |
+              |       GND --------+--------------------+------ GND
+              |                   |
+              +-------------------+
+
+Connect the OLED
+
+ESP32 DEVKIT V1              1.3-INCH SH1106 OLED
+----------------             -------------------
+3.3V  ----------------------> VCC*
+GND   ----------------------> GND
+GPIO 21 (SDA) --------------> SDA
+GPIO 22 (SCL) --------------> SCL
+
+Connect the MAX30100 sensor
+ESP32 DEVKIT V1              MAX30100 MODULE
+----------------             ---------------
+3.3V  ----------------------> VIN*
+GND   ----------------------> GND
+GPIO 21 (SDA) --------------> SDA
+GPIO 22 (SCL) --------------> SCL
+                              INT  -- Not connected
+Connect the two 2.2 kΩ resistors
+                 3.3V
+                   |
+          +--------+--------+
+          |                 |
+       [2.2 kΩ]          [2.2 kΩ]
+          |                 |
+          |                 |
+       SDA BUS            SCL BUS
+          |                 |
+     +----+------+     +----+------+
+     |           |     |           |
+ ESP32 GPIO21  OLED   ESP32 GPIO22 OLED
+               SDA                  SCL
+     |                           |
+ MAX30100 SDA                MAX30100 SCL
