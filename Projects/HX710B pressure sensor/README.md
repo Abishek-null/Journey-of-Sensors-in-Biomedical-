@@ -1,67 +1,68 @@
-🌡️ HX710B Pressure Sensor Interface
-📌 Project Overview
+HX710B Pressure Sensor with ESP32
+Project Overview
 
-This project explores interfacing the HX710B pressure sensor module with a microcontroller to acquire and process pressure-related sensor data.
+This project explores interfacing the HX710B pressure sensor module with an ESP32 to acquire, record, and calibrate sensor readings.
 
-It is part of my Journey of Sensors in Biomedical repository, where I document my learning, experiments, source code, and practical implementations involving sensors and biomedical instrumentation.
+It is part of my Journey of Sensors in Biomedical repository, where I document my practical learning in sensors, microcontrollers, data acquisition, and biomedical instrumentation.
 
-🎯 Objectives
-Understand the working principle of the HX710B module.
-Learn how to interface the module with a microcontroller.
-Read and process digital sensor output.
-Explore pressure measurement and sensor calibration.
-Investigate potential applications in biomedical instrumentation.
-🧰 Components Used
+Project Structure
+HX710B sensor/ — Main sensor interface code.
+hx710b_calibration/ — Calibration-related code or data.
+sensorr awdata/ — Raw sensor readings collected during experiments.
+
+The folder contents and filenames may vary as the project develops.
+
+Hardware Requirements
+ESP32 development board
 HX710B pressure sensor module
-Compatible pressure transducer or sensing element
-Microcontroller development board
+Compatible pressure transducer
 Jumper wires
-USB cable or suitable power supply
+USB cable for programming and serial output
+ESP32 Pin Connections
+HX710B Pin	ESP32 Pin
+VCC	3.3V, if supported by the module
+GND	GND
+DOUT / Data	GPIO 18
+SCK / Clock	GPIO 19
 
-The exact hardware configuration will be documented according to the setup used in this project.
+Important: These are example pin assignments. Confirm the module pin labels, voltage requirements, and pin definitions in the source code before wiring.
 
-⚙️ Working Principle
+Working Principle
 
-The pressure-sensing element converts applied pressure into an electrical signal. The HX710B processes this signal through its internal measurement circuitry and provides digital output that can be read by a compatible microcontroller.
+The pressure transducer converts applied pressure into an electrical signal. The HX710B measurement IC converts the signal into digital readings that the ESP32 can acquire and process.
 
-Additional processing and calibration may be required to convert raw readings into meaningful pressure values.
+Raw readings may require calibration to relate them to pressure units. The conversion depends on the transducer, its specifications, and the calibration procedure.
 
-💻 Source Code
+Project Workflow
+Connect the HX710B module to the ESP32.
+Upload the sensor-reading code.
+Collect raw sensor readings.
+Perform calibration using a suitable reference.
+Process and document the measurements.
+Calibration
 
-The source code for interfacing the HX710B with the selected microcontroller will be maintained in this folder.
+Calibration is used to establish the relationship between sensor output and known reference pressures.
 
-Code file: hx710b_pressure.ino
+Record the calibration conditions, reference values, raw readings, conversion formula, and applicable measurement range. Do not assume a universal calibration factor.
 
-The filename is an example and can be changed to match the actual uploaded code.
+Applications and Learning
 
-🔌 Circuit Connections
+This project helps explore digital sensor interfacing, pressure measurement, calibration, data logging, and potential biomedical instrumentation applications.
 
-The circuit diagram and pin connections will be added to document the hardware setup and help others reproduce the experiment.
+The suitability of the final measurement depends on the connected pressure transducer and the complete system design.
 
-🧪 Testing and Calibration
+Project Status
 
-Testing will focus on sensor readings, stable data acquisition, and calibration against a suitable reference where applicable.
+Status: Code, calibration, and raw-data experiments are organized in separate folders.
 
-The relationship between raw readings and pressure depends on the sensor module, pressure transducer, calibration, and measurement range.
+Further documentation, wiring details, and test results can be added as the project progresses.
 
-📚 Learning Outcomes
-Pressure sensor interfacing
-Digital data acquisition
-Sensor calibration and signal processing
-Microcontroller programming
-Exploring pressure measurement in biomedical applications
-🚧 Project Status
+Disclaimer
 
-Status: Learning and experimentation.
+This is an educational project, not a certified medical device. It must not be used for clinical diagnosis or patient-care decisions without appropriate validation and medical-grade equipment.
 
-Code, circuit details, calibration information, and test results will be updated as the project progresses.
+Contributions
 
-⚠️ Disclaimer
+Suggestions, feedback, and improvements are welcome.
 
-This is an educational project and is not a certified medical measurement device. Do not use it for clinical diagnosis or patient-care decisions without appropriate validation and medical-grade equipment.
-
-🤝 Contributions
-
-Suggestions, improvements, and learning contributions are welcome.
-
-Learn • Experiment • Build • Share 🌱
+Learn • Experiment • Build • Share
