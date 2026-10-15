@@ -1,0 +1,110 @@
+HX710B Pressure Sensor with ESP32
+1. Project Overview
+
+This project demonstrates interfacing the HX710B pressure sensor module with an ESP32 microcontroller to acquire, process, and calibrate pressure-related sensor data.
+
+This project is part of my Journey of Sensors in Biomedical repository, where I document my learning, experiments, source code, and practical implementations involving sensors and biomedical instrumentation.
+
+2. Components Required
+ESP32 Development Board
+
+The main controller used to read sensor data, process measurements, and send results to the Serial Monitor or other connected applications.
+
+HX710B Pressure Sensor Module
+
+A high-resolution measurement module that converts the electrical signal from a compatible pressure transducer into digital data.
+
+Pressure Transducer
+
+Detects applied pressure and converts it into an electrical signal. The type and pressure range depend on the transducer used.
+
+Jumper Wires
+
+Used to connect the ESP32 and HX710B module.
+
+USB Cable
+
+Used to program and power the ESP32 and view serial output.
+
+3. ESP32 Pin Connections
+
+Example connections for a module with VCC, GND, DOUT, and SCK pins:
+
+HX710B Module	ESP32 Board	Function
+VCC	3V3, if supported	Power supply
+GND	GND	Common ground
+DOUT	GPIO 18	Digital data output
+SCK	GPIO 19	Clock signal
+
+Note: GPIO 18 and GPIO 19 are example assignments. Confirm the pin numbers used in the source code and the voltage requirements of your specific module before connecting the hardware.
+
+4. Connection Diagram
+       HX710B PRESSURE SENSOR MODULE
+       ┌──────────────────────────┐
+       │                          │
+       │ VCC  ────────────────────┼── ESP32 3V3*
+       │ GND  ────────────────────┼── ESP32 GND
+       │ DOUT ────────────────────┼── ESP32 GPIO 18
+       │ SCK  ────────────────────┼── ESP32 GPIO 19
+       │                          │
+       └────────────┬─────────────┘
+                    │
+             Pressure Transducer
+              (as applicable)
+
+       *Only if supported by the module.
+
+
+The actual transducer connections depend on the module design. Some boards require a separate pressure transducer connected to dedicated input terminals.
+
+5. Working Principle
+Pressure is applied to a compatible pressure transducer.
+The transducer converts pressure into an electrical signal.
+The HX710B measurement IC converts the signal into digital data.
+The ESP32 reads the digital output using the appropriate communication protocol.
+The program processes and displays or records the sensor readings.
+Calibration can be used to convert raw readings into pressure units.
+6. Project Folder Structure
+HX710B sensor/ — Main sensor interface code.
+hx710b_calibration/ — Calibration code and related information.
+sensor_raw_data/ — Raw sensor readings collected during testing.
+README.md — Project overview, wiring, and documentation.
+7. Calibration and Testing
+
+Calibration is necessary to relate raw sensor readings to known pressure values.
+
+Recommended testing procedure:
+
+Record readings under a known reference condition.
+Apply multiple known pressure values within the transducer's rated range.
+Record the corresponding raw sensor readings.
+Calculate and verify the calibration relationship.
+Document the calibration factor, pressure units, reference instrument, and measurement range.
+
+Raw readings must not be treated as pressure values until the conversion has been verified.
+
+8. Applications and Learning Outcomes
+
+This project provides practical experience in:
+
+Pressure sensor interfacing
+ESP32 microcontroller programming
+Digital sensor data acquisition
+Sensor calibration and measurement analysis
+Biomedical instrumentation concepts
+Experimental data collection
+9. Project Status
+
+Status: Under development and testing.
+
+The source code, calibration files, raw sensor data, circuit connections, and experimental results are organized into separate folders for easier understanding and reuse.
+
+10. Disclaimer
+
+This project is intended for educational and experimental purposes only. It is not a certified medical device and must not be used for clinical diagnosis or treatment. Blood pressure measurement requires an appropriate pressure transducer, a validated system design, and proper medical-device testing.
+
+11. Contributions
+
+Suggestions, feedback, and improvements are welcome. Feel free to explore the code, learn from the experiments, and contribute ideas.
+
+Learn • Experiment • Build • Share 🌱
