@@ -1,0 +1,672 @@
+| Component pin     | Connect to                                |
+| ----------------- | ----------------------------------------- |
+| OLED VCC          | ESP32 3.3 V, if supported                 |
+| OLED GND          | ESP32 GND                                 |
+| OLED SDA          | ESP32 GPIO 21                             |
+| OLED SCL          | ESP32 GPIO 22                             |
+| MAX30100 VIN      | Appropriate supply for the breakout board |
+| MAX30100 GND      | ESP32 GND                                 |
+| MAX30100 SDA      | ESP32 GPIO 21                             |
+| MAX30100 SCL      | ESP32 GPIO 22                             |
+| 2.2 kΩ resistor 1 | SDA bus to 3.3 V                          |
+| 2.2 kΩ resistor 2 | SCL bus to 3.3 V                          |
+| MAX30100 INT      | Leave disconnected for polling            |
+
+About code and working principle
+# ESP32 Smart Heart Rate and SpO₂ Monitor
+
+A compact, smartwatch-inspired health-monitoring prototype built using the ESP32, MAX30100 pulse oximeter sensor, and a 1.3-inch SH1106 OLED display.
+
+The project measures heart rate in beats per minute (BPM) and estimates peripheral blood oxygen saturation (SpO₂). Measurements are displayed on the OLED in a simple interface, while live values and heartbeat-detection events are printed to the Serial Monitor.
+
+The project demonstrates embedded systems programming, I²C communication, optical sensing, sensor data processing, and real-time display updates using the Arduino framework.
+
+---
+
+## 1. Project Overview
+
+### What does this project do?
+
+The system uses an optical sensor to detect changes in blood volume within a fingertip.
+
+The MAX30100 contains red and infrared LEDs and a photodetector. Light interacts with the tissue and blood in the finger, and the sensor measures the returning optical signal.
+
+The ESP32 communicates with the sensor, processes the readings using a pulse oximeter library, and displays the calculated measurements.
+
+### Main features
+
+* Heart-rate measurement in BPM.
+* SpO₂ estimation in percentage.
+* Real-time OLED interface inspired by smartwatch displays.
+* Heartbeat-detection callback and simple animation.
+* Serial Monitor output for debugging.
+* Shared I²C bus for the sensor and display.
+* Status messages for waiting, stabilizing, and displaying readings.
+* Modular firmware that can be extended with additional features.
+
+### Hardware and software architecture
+
+```text
+                  FINGER
+                    |
+                    v
+          +-------------------+
+          |     MAX30100      |
+          |                   |
+          | Red LED           |
+          | Infrared LED      |
+          | Photodetector     |
+          | Signal Processing |
+          +-------------------+
+                    |
+                    | I2C
+                    |
+                    v
+          +-------------------+
+          |    ESP32 DevKit   |
+          |                   |
+          | Sensor Interface  |
+          | Pulse Oximeter    |
+          | Library           |
+          | Display Logic     |
+          +-------------------+
+               |         |
+               |         |
+          I2C Bus     USB Serial
+               |         |
+               v         v
+       +------------+  +----------------+
+       | SH1106 OLED|  | Serial Monitor |
+       |            |  |                |
+       | Heart Rate |  | BPM            |
+       | SpO2       |  | SpO2            |
+       | Status     |  | Debug Messages |
+       +------------+  +----------------+
+```
+
+---
+
+## 2. Components Required
+
+| No. | Component                       |    Quantity | Purpose                             |
+| --- | ------------------------------- | ----------: | ----------------------------------- |
+| 1   | ESP32 DevKit V1                 |           1 | Main microcontroller                |
+| 2   | MAX30100 pulse oximeter module  |           1 | Optical heart-rate and SpO₂ sensing |
+| 3   | 1.3-inch, 128 × 64 SH1106 OLED  |           1 | Displays measurements               |
+| 4   | 2.2 kΩ resistor                 |           2 | I²C pull-up resistors, if required  |
+| 5   | Breadboard or prototyping board |           1 | Circuit assembly                    |
+| 6   | Jumper wires                    | As required | Electrical connections              |
+| 7   | USB cable                       |           1 | ESP32 power and programming         |
+
+**Note:** The MAX30100 breakout board and the bare MAX30100 IC are not electrically identical from a wiring perspective. The breakout board's power requirements, voltage regulator, and level-shifting circuitry must be checked before connecting it.
+
+---
+
+## 3. Hardware Connections
+
+### 3.1 ESP32 to MAX30100
+
+| MAX30100 pin | ESP32 connection                        |
+| ------------ | --------------------------------------- |
+| VIN          | Voltage supported by the breakout board |
+| GND          | GND                                     |
+| SDA          | GPIO 21                                 |
+| SCL          | GPIO 22                                 |
+| INT          | Not connected; polling is used          |
+
+The MAX30100 normally uses the I²C address `0x57`.
+
+The ESP32 reads data from the sensor through the SDA and SCL lines.
+
+### 3.2 ESP32 to SH1106 OLED
+
+| OLED pin | ESP32 connection              |
+| -------- | ----------------------------- |
+| VCC      | Supported OLED supply voltage |
+| GND      | GND                           |
+| SDA      | GPIO 21                       |
+| SCL      | GPIO 22                       |
+
+The OLED uses the I²C address `0x3C` in this project.
+
+### 3.3 Shared I²C bus
+
+Both devices communicate with the ESP32 through the same two signal lines.
+
+```text
+                    ESP32 DevKit V1
+                   +----------------+
+                   |                |
+                   | GPIO 21 (SDA)  |
+                   | GPIO 22 (SCL)  |
+                   | 3.3V           |
+                   | GND            |
+                   +----------------+
+                       |  |  |  |
+                       |  |  |  +------------------- GND
+                       |  |  |
+                       |  |  +---------------------- Pull-up supply
+                       |  |
+                       |  +------------------------- SCL BUS
+                       |
+                       +---------------------------- SDA BUS
+                            |                 |
+                            |                 |
+                       +----------+      +----------+
+                       | MAX30100 |      | SH1106   |
+                       |          |      | OLED     |
+                       | SDA      |      | SDA      |
+                       | SCL      |      | SCL      |
+                       +----------+      +----------+
+```
+
+### 3.4 Pull-up resistors
+
+I²C uses open-drain/open-collector signalling. Pull-up resistors allow the SDA and SCL lines to return to a logic-high voltage when no device is pulling them low.
+
+The project initially experienced unstable I²C scanning. Communication became detectable after adding two 2.2 kΩ pull-up resistors.
+
+The intended arrangement is:
+
+```text
+             Compatible 3.3V logic supply
+                       |
+                +------+------+
+                |             |
+             2.2 kΩ        2.2 kΩ
+                |             |
+                |             |
+             SDA BUS       SCL BUS
+                |             |
+         +------+-----+ +-----+------+
+         |            | |            |
+     ESP32 GPIO21  SDA OLED       SCL OLED
+         |                          |
+     MAX30100 SDA                MAX30100 SCL
+```
+
+Use one pull-up resistor on SDA and one on SCL when external pull-ups are needed.
+
+**Important electrical considerations:**
+
+* Both pull-up resistors must connect to a logic voltage compatible with the ESP32 and both modules.
+* Do not connect the I²C pull-ups to 5 V.
+* Some breakout boards already contain pull-up resistors.
+* Multiple pull-ups operate in parallel, reducing the effective resistance.
+* If the modules already have pull-ups, adding two more 2.2 kΩ resistors can make the combined resistance unnecessarily low.
+* The appropriate resistance depends on bus capacitance, wiring length, device characteristics, and communication speed.
+
+If the bus works with the current resistors, document the actual arrangement and verify the electrical characteristics before making the circuit permanent.
+
+---
+
+## 4. Working Principle
+
+The system operates through six main stages.
+
+### Stage 1: Optical sensing
+
+When a finger is placed on the MAX30100, the sensor's red and infrared LEDs illuminate the tissue.
+
+The amount of light detected depends on the optical properties of the tissue and blood.
+
+Blood volume changes during each cardiac cycle, producing small variations in the measured optical signal.
+
+This technique is called photoplethysmography (PPG).
+
+### Stage 2: Sensor signal acquisition
+
+The MAX30100 contains an optical detector, analog signal-processing circuitry, an ADC, and digital data registers.
+
+It processes the received light signals and makes the resulting measurements available to the ESP32 over I²C.
+
+The sensor uses red and infrared optical measurements for pulse oximetry.
+
+### Stage 3: I²C communication
+
+The ESP32 communicates with the MAX30100 through:
+
+* SDA: Serial data.
+* SCL: Serial clock.
+
+The ESP32 also communicates with the SH1106 OLED using the same bus.
+
+Each device has its own I²C address, allowing the controller to communicate with the appropriate peripheral.
+
+The MAX30100 address is `0x57`, while the OLED address in this project is `0x3C`.
+
+### Stage 4: Heart-rate calculation
+
+The firmware uses the `PulseOximeter` class from the MAX30100 library.
+
+The main processing call is:
+
+```cpp
+pox.update();
+```
+
+This function must be called frequently so that the library can process incoming sensor samples and detect pulse events.
+
+The calculated heart rate is retrieved using:
+
+```cpp
+float heartRate = pox.getHeartRate();
+```
+
+Heart rate is expressed in beats per minute.
+
+For example, a reading of 75 BPM represents approximately 75 detected cardiac cycles per minute.
+
+The library also provides a heartbeat-detection callback:
+
+```cpp
+void onBeatDetected()
+{
+    Serial.println("Heartbeat detected!");
+}
+```
+
+The callback is invoked when the library's beat-detection algorithm detects a heartbeat.
+
+It can be used to trigger a display animation, log a detection event, or initiate another non-blocking action.
+
+### Stage 5: SpO₂ estimation
+
+SpO₂ is the estimated percentage of haemoglobin in arterial blood that is carrying oxygen.
+
+The firmware retrieves the library's calculated value using:
+
+```cpp
+float spo2 = pox.getSpO2();
+```
+
+Pulse oximetry estimates oxygen saturation by analysing the different optical responses associated with red and infrared light.
+
+The underlying measurement depends on the optical signal, the sensor configuration, and the calibration and algorithms used.
+
+The displayed percentage is an estimate. It should not be assumed to be medically accurate merely because it falls within a plausible range.
+
+### Stage 6: OLED and Serial Monitor updates
+
+The firmware periodically reads the calculated measurements and refreshes the display.
+
+The OLED presents the values in a compact layout:
+
+* Heart rate in BPM.
+* SpO₂ in percent.
+* A simple heartbeat animation.
+* A status message.
+
+The Serial Monitor prints the measurements and diagnostic messages for development and troubleshooting.
+
+---
+
+## 5. Software Architecture
+
+The firmware has four main responsibilities.
+
+### 5.1 Hardware initialization
+
+The ESP32 initializes the I²C bus:
+
+```cpp
+Wire.begin(SDA_PIN, SCL_PIN);
+Wire.setClock(100000);
+```
+
+This configures GPIO 21 as SDA and GPIO 22 as SCL, using a 100 kHz I²C clock.
+
+The OLED is initialized using the SH1106 driver:
+
+```cpp
+display.begin(OLED_ADDRESS, true);
+```
+
+The sensor is initialized through:
+
+```cpp
+pox.begin();
+```
+
+The SH1106 library is required because this particular 1.3-inch OLED worked with that controller driver.
+
+### 5.2 Sensor configuration
+
+The project configures the sensor's infrared LED current:
+
+```cpp
+pox.setIRLedCurrent(MAX30100_LED_CURR_11MA);
+```
+
+It then registers the heartbeat callback:
+
+```cpp
+pox.setOnBeatDetectedCallback(onBeatDetected);
+```
+
+The selected LED current affects optical signal strength and power consumption. A higher current does not automatically guarantee a more accurate reading and should remain within the sensor module's electrical and thermal limits.
+
+### 5.3 Continuous sensor processing
+
+The main loop calls:
+
+```cpp
+pox.update();
+```
+
+This is one of the most important parts of the firmware.
+
+Avoid long delays, blocking operations, or lengthy display-processing routines in the main loop. They can reduce how frequently the sensor library is serviced and interfere with signal processing.
+
+### 5.4 Periodic display refresh
+
+The firmware uses elapsed-time checks based on `millis()`.
+
+For example:
+
+```cpp
+if (now - lastDisplayUpdate >= DISPLAY_INTERVAL)
+{
+    lastDisplayUpdate = now;
+
+    heartRate = pox.getHeartRate();
+    spo2 = pox.getSpO2();
+
+    drawMonitor();
+}
+```
+
+This schedules display updates without using a blocking delay.
+
+In the current implementation, the display interval is 500 ms.
+
+The display update interval determines how often the OLED is refreshed; it does not determine the sensor's actual sampling rate or guarantee a new valid measurement at every refresh.
+
+---
+
+## 6. Heartbeat Detection and Display Logic
+
+The display uses numerical validity checks to decide whether a measurement should be shown.
+
+### Heart-rate check
+
+```cpp
+bool validHR =
+    heartRate >= 30.0f &&
+    heartRate <= 220.0f;
+```
+
+This accepts values between 30 and 220 BPM.
+
+### SpO₂ check
+
+```cpp
+bool validSpO2 =
+    spo2 >= 70.0f &&
+    spo2 <= 100.0f;
+```
+
+This accepts values between 70% and 100%.
+
+If a value falls outside the configured range, the display shows a placeholder rather than the numerical value.
+
+**Important limitation:** These checks only reject values outside the selected numerical ranges. They do not prove that a finger is present, that the optical signal is strong enough, or that the reading is accurate.
+
+The current firmware should therefore be considered a prototype. A more robust implementation should use explicit finger-presence detection, signal-quality assessment, and a validated measurement algorithm.
+
+---
+
+## 7. OLED User Interface
+
+The 1.3-inch, 128 × 64 SH1106 OLED provides a compact interface inspired by a smartwatch.
+
+The display separates the two measurements into different sections.
+
+```text
++--------------------------------+
+|         HEALTH MONITOR         |
+|--------------------------------|
+| HEART RATE    |     SpO2       |
+|               |                |
+|   76          |      98%        |
+|   BPM         |                |
+|--------------------------------|
+|          LIVE READING          |
++--------------------------------+
+```
+
+The numerical values above are illustrative.
+
+The user interface includes:
+
+* A header identifying the monitor.
+* A heart-rate section.
+* An SpO₂ section.
+* A heartbeat icon.
+* A status message.
+* Placeholder values when readings do not pass the configured numerical checks.
+
+The interface is monochrome because the SH1106 OLED does not provide colour.
+
+---
+
+## 8. Development Environment
+
+### Required software
+
+* Arduino IDE.
+* ESP32 board support package.
+* USB-to-serial driver appropriate for the ESP32 development board.
+
+### Required Arduino libraries
+
+Install the following through Arduino IDE Library Manager:
+
+1. `MAX30100lib` by OXullo Intersecans.
+2. `Adafruit SH110X`.
+3. `Adafruit GFX Library`.
+
+The MAX30100 library provides the pulse oximeter interface. Adafruit SH110X handles communication with the OLED controller, and Adafruit GFX provides the graphics and text functions.
+
+### Pin configuration
+
+The firmware uses:
+
+```cpp
+#define SDA_PIN 21
+#define SCL_PIN 22
+
+#define OLED_ADDRESS 0x3C
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+```
+
+These settings match the tested ESP32 DevKit V1 and the OLED configuration used in this project.
+
+---
+
+## 9. How to Run the Project
+
+### Step 1: Assemble the circuit
+
+Connect the MAX30100 and SH1106 OLED to the ESP32 according to the connection tables.
+
+Ensure all devices share a common ground.
+
+Check the breakout-board power requirements and I²C pull-up voltage before applying power.
+
+### Step 2: Install the libraries
+
+Install the three required libraries using Arduino IDE Library Manager.
+
+### Step 3: Select the ESP32 board
+
+Select the appropriate ESP32 development board and COM port in Arduino IDE.
+
+### Step 4: Upload the firmware
+
+Compile and upload the project firmware.
+
+If the upload fails, check the selected port, USB cable, and board configuration.
+
+### Step 5: Open the Serial Monitor
+
+Set the Serial Monitor baud rate to:
+
+```text
+115200
+```
+
+The firmware prints initialization messages and periodic heart-rate and SpO₂ values.
+
+### Step 6: Measure
+
+Place the finger gently over the sensor's optical surface.
+
+Keep the finger still and avoid applying excessive pressure.
+
+Wait for the sensor algorithm to produce stable measurements.
+
+Movement, ambient light, poor contact, and inadequate optical signal can affect the readings.
+
+---
+
+## 10. Troubleshooting
+
+### Problem 1: MAX30100 initialization fails
+
+Possible causes:
+
+* Incorrect SDA or SCL connections.
+* Incorrect sensor supply voltage.
+* Missing or unsuitable I²C pull-ups.
+* Incorrect module pin identification.
+* Poor breadboard or jumper-wire connections.
+
+Check the sensor's I²C address using an I²C scanner. A typical MAX30100 responds at `0x57`.
+
+An address response confirms basic I²C communication, not successful optical measurement.
+
+### Problem 2: OLED displays random pixels
+
+Possible causes:
+
+* Incorrect display controller selected in firmware.
+* Incorrect OLED dimensions.
+* Unstable supply voltage.
+* Incorrect wiring.
+* I²C signal-integrity problems.
+
+This project uses the SH1106 driver because it resolved the display problem encountered with the tested 1.3-inch OLED.
+
+### Problem 3: Heart rate remains unavailable
+
+Possible causes:
+
+* Finger is not positioned correctly.
+* Finger movement introduces noise.
+* Optical signal strength is insufficient.
+* Sensor configuration is unsuitable.
+* The sensor library has not yet obtained enough useful samples.
+
+Check the sensor independently before troubleshooting the OLED.
+
+### Problem 4: SpO₂ remains unavailable
+
+SpO₂ calculation depends on the red and infrared measurements and the library's algorithm.
+
+A valid-looking heart-rate reading does not guarantee that a valid SpO₂ estimate is available.
+
+Check the optical signal, finger placement, sensor configuration, and library output.
+
+### Problem 5: OLED and Serial Monitor show different results
+
+The display and Serial Monitor should use the same measurement variables and compatible validity rules.
+
+Check that the firmware:
+
+1. Reads the latest sensor values.
+2. Updates the shared measurement variables.
+3. Calls the OLED rendering function.
+4. Calls `display.display()` to transmit the display buffer.
+
+Avoid using unrelated finger-detection conditions for the OLED and Serial Monitor without explicitly defining the intended behaviour.
+
+---
+
+## 11. Known Limitations
+
+This project is an educational embedded-systems prototype.
+
+Current limitations include:
+
+* No medical-grade validation.
+* No independent calibration against a clinical reference.
+* No comprehensive signal-quality assessment.
+* No robust, independently validated finger-presence detection.
+* Numerical range checks do not establish measurement accuracy.
+* Movement and ambient light may affect readings.
+* The current display logic is not a substitute for a validated physiological measurement algorithm.
+
+The MAX30100's sensor architecture supports optical heart-rate and pulse-oximetry measurements, but reliable SpO₂ measurement requires appropriate signal processing and validation.
+
+**Do not use this prototype to diagnose a medical condition, make treatment decisions, or replace a validated medical device.**
+
+---
+
+## 12. Future Improvements
+
+Potential improvements include:
+
+* Explicit finger-presence detection.
+* Optical signal-quality assessment.
+* Better handling of invalid or stale measurements.
+* Validated heart-rate filtering.
+* SpO₂ calibration and verification against a suitable reference.
+* Pulse waveform visualisation.
+* Configurable sampling and display update rates.
+* Battery-powered operation.
+* Low-power operation and sleep modes.
+* Bluetooth Low Energy telemetry.
+* Data logging and historical measurement graphs.
+* A wearable enclosure and improved sensor positioning.
+
+Each improvement should be tested independently to avoid introducing display or timing problems into the sensor-processing loop.
+
+---
+
+## 13. Learning Outcomes
+
+This project provides practical experience with:
+
+* ESP32 embedded programming.
+* I²C peripheral communication.
+* Optical physiological sensing.
+* Pulse oximeter library integration.
+* Event callbacks.
+* Non-blocking periodic tasks.
+* OLED graphics and user-interface design.
+* Hardware debugging and electrical troubleshooting.
+* Serial logging and firmware diagnostics.
+* Embedded software architecture.
+
+It is suitable as a starting point for students and developers exploring embedded systems, wearable electronics, and sensor-based monitoring prototypes.
+
+---
+
+## 14. References
+
+* MAX30100 datasheet: Analog Devices / Maxim Integrated.
+* MAX30100 library: OXullo Intersecans.
+* Adafruit SH110X library.
+* Adafruit GFX library.
+
+Refer to the original sensor documentation and library source code when modifying sensor configuration, measurement algorithms, or hardware connections.
+
+---
+
+## License
+
+Choose an appropriate open-source license before publishing this repository.
+
+If you intend other developers to reuse, modify, or distribute your code, include the license file and verify the license terms of any third-party libraries you use.
